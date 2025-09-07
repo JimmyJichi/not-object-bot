@@ -127,6 +127,8 @@ class PhotosCog(commands.Cog):
     @app_commands.command(name='photo', description='Spend 1000 coins to get a random photo from Object\'s phone!')
     async def random_photo(self, interaction: discord.Interaction):
         """Command to get a random photo for 1000 coins"""
+        # Check if user is in the correct channel
+        photo_channel_id = os.getenv('PHOTO_CHANNEL')        
         user_id = interaction.user.id
         username = interaction.user.display_name
         
@@ -137,12 +139,21 @@ class PhotosCog(commands.Cog):
         if current_coins < required_coins:
             embed = discord.Embed(
                 title="💰 Insufficient Coins",
-                description=f"You need **{required_coins} coins** to get a random photo!\n\nYour current balance: **{current_coins} coins**",
+                description=f"You need **{required_coins} coins** to get a photo!\n\nYour current balance: **{current_coins} coins**",
                 color=0xff6b6b
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
         
+        if photo_channel_id and str(interaction.channel_id) != photo_channel_id:
+            embed = discord.Embed(
+                title="🚫 Wrong Channel",
+                description=f"This command can only be used in <#{photo_channel_id}>!",
+                color=0xff6b6b
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+
         # Spend the coins
         if not spend_coins(user_id, username, required_coins):
             embed = discord.Embed(

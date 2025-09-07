@@ -127,7 +127,7 @@ class ShootingStarCog(commands.Cog):
     async def shooting_star_task(self):
         """Main task loop for shooting star events"""
         # Get the channel IDs from environment variable
-        channel_ids_str = os.getenv('CHANNEL_IDS', '')
+        channel_ids_str = os.getenv('SHOOTING_STAR_CHANNEL', '')
         if not channel_ids_str:
             print("Please set CHANNEL_IDS in your .env file (comma-separated list of channel IDs)")
             return
