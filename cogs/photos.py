@@ -187,10 +187,11 @@ class PhotosCog(commands.Cog):
             color=0x4ecdc4
         )
         
-        # Send the photo as a file attachment
+        # Send the photo embedded in the message
         try:
             with open(photo_path, 'rb') as f:
                 photo_file = discord.File(f, filename=os.path.basename(photo_path))
+                embed.set_image(url=f"attachment://{os.path.basename(photo_path)}")
                 await interaction.response.send_message(embed=embed, file=photo_file)
         except Exception as e:
             # Refund the coins if file sending failed
