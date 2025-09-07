@@ -19,6 +19,13 @@ def init_database():
             FOREIGN KEY (user_id) REFERENCES users (user_id)
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS daily_messages (
+            user_id INTEGER PRIMARY KEY,
+            last_message_date TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users (user_id)
+        )
+    ''')
     conn.commit()
     conn.close()
 
@@ -125,6 +132,52 @@ def perform_daily_checkin(user_id, username):
     today_utc = datetime.now(timezone.utc).strftime('%Y-%m-%d')
     cursor.execute('''
         INSERT OR REPLACE INTO daily_checkins (user_id, last_checkin_date)
+        VALUES (?, ?)
+    ''', (user_id, today_utc))
+    
+    conn.commit()
+    conn.close()
+    
+    # Return the new coin balance
+    return get_user_coins(user_id)
+
+
+def can_earn_daily_message_reward(user_id):
+    """Check if a user can earn coins for their first message of the day (based on UTC date)"""
+    from datetime import datetime, timezone
+    
+    conn = sqlite3.connect('shooting_star.db')
+    cursor = conn.cursor()
+    
+    # Get the last message date
+    cursor.execute('SELECT last_message_date FROM daily_messages WHERE user_id = ?', (user_id,))
+    result = cursor.fetchone()
+    
+    conn.close()
+    
+    if not result:
+        return True  # User has never sent a message
+    
+    last_message = result[0]
+    today_utc = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    
+    return last_message != today_utc
+
+
+def process_daily_message_reward(user_id, username):
+    """Process daily message reward for a user and return the new coin balance"""
+    from datetime import datetime, timezone
+    
+    conn = sqlite3.connect('shooting_star.db')
+    cursor = conn.cursor()
+    
+    # Add coins
+    add_coins(user_id, username, 200)
+    
+    # Update message date
+    today_utc = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    cursor.execute('''
+        INSERT OR REPLACE INTO daily_messages (user_id, last_message_date)
         VALUES (?, ?)
     ''', (user_id, today_utc))
     

@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import os
 from dotenv import load_dotenv
-from utils.database import init_database
+from utils.database import init_database, can_earn_daily_message_reward, process_daily_message_reward
 
 # Load environment variables
 load_dotenv()
@@ -39,14 +39,18 @@ bot = ShootingStarBot()
 
 @bot.event
 async def on_message(message):
-    # Handle !sync command for owner
-    if message.content.lower() == '!sync' and message.author.id == int(os.getenv('OWNER_ID', 0)):
-        try:
-            await bot.tree.sync()
-            await message.channel.send("✅ Command tree synced successfully!")
-        except Exception as e:
-            await message.channel.send(f"❌ Failed to sync command tree: {e}")
+    # Ignore bot messages
+    if message.author.bot:
+        await bot.process_commands(message)
         return
+
+    # Check if this is the user's first message of the day (UTC) for coin reward
+    user_id = message.author.id
+    username = message.author.display_name
+    
+    if can_earn_daily_message_reward(user_id):
+        # Award 200 coins for first message of the day
+        process_daily_message_reward(user_id, username)
     
     # Process commands
     await bot.process_commands(message)
