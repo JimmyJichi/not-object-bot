@@ -3,6 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 import os
 import random
+import shutil
 from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
 from geopy.geocoders import Nominatim
@@ -15,6 +16,27 @@ class PhotosCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.photos_dir = "photos"
+        self.revealed_dir = os.path.join(self.photos_dir, "revealed")
+
+    def get_photo_counts(self):
+        """Get counts of total photos and revealed photos"""
+        try:
+            # Get all image files from main photos directory (unrevealed)
+            unrevealed_files = [f for f in os.listdir(self.photos_dir) 
+                              if f.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp'))]
+            
+            # Get all image files from revealed directory
+            revealed_files = [f for f in os.listdir(self.revealed_dir) 
+                             if f.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp'))]
+            
+            # Total photos = unrevealed + revealed
+            total_photos = len(unrevealed_files) + len(revealed_files)
+            revealed_photos = len(revealed_files)
+            
+            return total_photos, revealed_photos
+        except Exception as e:
+            print(f"Error getting photo counts: {e}")
+            return 0, 0
 
     def get_exif_data(self, image_path):
         """Extract EXIF data from an image"""
@@ -89,20 +111,20 @@ class PhotosCog(commands.Cog):
             return None, None
 
     def get_random_photo_info(self):
-        """Get a random photo from the photos directory with location info"""
+        """Get a random photo from the photos directory with location info and move it to revealed"""
         try:
             # Get all image files from photos directory
             image_files = [f for f in os.listdir(self.photos_dir) 
                           if f.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp'))]
             
             if not image_files:
-                return None, "No photos found in the photos directory!"
+                return None, "You have seen all the photos. Stay tuned for more!"
             
             # Select a random photo
             random_photo = random.choice(image_files)
             photo_path = os.path.join(self.photos_dir, random_photo)
             
-            # Extract EXIF data
+            # Extract EXIF data before moving the file
             exif_data = self.get_exif_data(photo_path)
             gps_data = self.get_gps_data(exif_data)
             
@@ -118,7 +140,11 @@ class PhotosCog(commands.Cog):
             else:
                 location_info = "📍 **Location:** Unknown"
             
-            return photo_path, location_info
+            # Move the photo to revealed directory
+            revealed_path = os.path.join(self.revealed_dir, random_photo)
+            shutil.move(photo_path, revealed_path)
+            
+            return revealed_path, location_info
             
         except Exception as e:
             print(f"Error getting random photo: {e}")
@@ -180,10 +206,13 @@ class PhotosCog(commands.Cog):
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
         
+        # Get photo counts
+        total_photos, revealed_photos = self.get_photo_counts()
+        
         # Create embed with photo info
         embed = discord.Embed(
             title="📸 Random Photo",
-            description=f"Here's a random photo from Object's phone!\n\n{location_info}\n\n💰 **Cost:** {required_coins} coins\n💳 **Remaining balance:** {current_coins - required_coins} coins",
+            description=f"Here's a random photo from Object's phone!\n\n{location_info}\n\n💰 **Cost:** {required_coins} coins\n💳 **Remaining balance:** {current_coins - required_coins} coins\n\n📊 **Photos:** {revealed_photos}/{total_photos}",
             color=0x4ecdc4
         )
         
