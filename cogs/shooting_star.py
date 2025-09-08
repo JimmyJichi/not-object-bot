@@ -203,14 +203,7 @@ class ShootingStarCog(commands.Cog):
         # Check if shooting star is active and message matches
         if self.shooting_star_active and message.content.lower() == self.current_message.lower():
             self.shooting_star_active = False
-            
-            # Delete the shooting star message
-            if self.shooting_star_msg:
-                try:
-                    await self.shooting_star_msg.delete()
-                except discord.NotFound:
-                    pass  # Message already deleted
-            
+                        
             # Add coins to the user
             user_id = message.author.id
             username = message.author.display_name
@@ -227,7 +220,7 @@ class ShootingStarCog(commands.Cog):
             )
             embed.add_field(
                 name="💰 Reward",
-                value=f"You earned **130 coins**!\nTotal coins: **{total_coins}**",
+                value=f"You earned **100 coins**!\nTotal coins: **{total_coins}**",
                 inline=False
             )
             embed.set_footer(text=f"Caught at {datetime.datetime.now(datetime.UTC).strftime('%H:%M:%S')} UTC")
