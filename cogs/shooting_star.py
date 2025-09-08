@@ -203,6 +203,17 @@ class ShootingStarCog(commands.Cog):
         # Check if shooting star is active and message matches
         if self.shooting_star_active and message.content.lower() == self.current_message.lower():
             self.shooting_star_active = False
+
+            if self.shooting_star_msg:
+                try:
+                    await self.shooting_star_msg.delete()
+                except discord.NotFound:
+                    pass  # Message already deleted
+
+            try:
+                await message.delete()
+            except discord.NotFound:
+                pass  # Message already deleted
                         
             # Add coins to the user
             user_id = message.author.id
