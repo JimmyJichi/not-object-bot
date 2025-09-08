@@ -24,7 +24,7 @@ class NotObjectBot(commands.Bot):
         await self.load_extension('cogs.photos')
         
         # Sync commands
-        await self.tree.sync()
+        # await self.tree.sync()
 
     async def on_ready(self):
         print(f'{self.user} has connected to Discord!')

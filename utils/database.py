@@ -3,7 +3,7 @@ import sqlite3
 
 def init_database():
     """Initialize the database with the users table"""
-    conn = sqlite3.connect('shooting_star.db')
+    conn = sqlite3.connect('not_object.db')
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
@@ -32,7 +32,7 @@ def init_database():
 
 def get_user_coins(user_id):
     """Get the coin balance for a specific user, creating them with 1000 coins if they don't exist"""
-    conn = sqlite3.connect('shooting_star.db')
+    conn = sqlite3.connect('not_object.db')
     cursor = conn.cursor()
     
     # Check if user exists
@@ -54,7 +54,7 @@ def get_user_coins(user_id):
 
 def add_coins(user_id, username, amount):
     """Add coins to a user's balance, giving new users 1000 coins base"""
-    conn = sqlite3.connect('shooting_star.db')
+    conn = sqlite3.connect('not_object.db')
     cursor = conn.cursor()
     cursor.execute('''
         INSERT OR REPLACE INTO users (user_id, username, coins)
@@ -66,7 +66,7 @@ def add_coins(user_id, username, amount):
 
 def remove_coins(user_id, username, amount):
     """Remove coins from a user's balance (minimum 0), giving new users 1000 coins base"""
-    conn = sqlite3.connect('shooting_star.db')
+    conn = sqlite3.connect('not_object.db')
     cursor = conn.cursor()
     cursor.execute('''
         INSERT OR REPLACE INTO users (user_id, username, coins)
@@ -78,7 +78,7 @@ def remove_coins(user_id, username, amount):
 
 def spend_coins(user_id, username, amount):
     """Spend coins from a user's balance. Returns True if successful, False if insufficient funds"""
-    conn = sqlite3.connect('shooting_star.db')
+    conn = sqlite3.connect('not_object.db')
     cursor = conn.cursor()
     
     # Check current balance (this will create user with 1000 coins if they don't exist)
@@ -100,7 +100,7 @@ def spend_coins(user_id, username, amount):
 
 def get_leaderboard(limit=10):
     """Get the top users by coin balance"""
-    conn = sqlite3.connect('shooting_star.db')
+    conn = sqlite3.connect('not_object.db')
     cursor = conn.cursor()
     cursor.execute('SELECT username, coins FROM users ORDER BY coins DESC LIMIT ?', (limit,))
     results = cursor.fetchall()
@@ -112,7 +112,7 @@ def can_daily_checkin(user_id):
     """Check if a user can perform a daily check-in (based on UTC date)"""
     from datetime import datetime, timezone
     
-    conn = sqlite3.connect('shooting_star.db')
+    conn = sqlite3.connect('not_object.db')
     cursor = conn.cursor()
     
     # Get the last check-in date
@@ -134,7 +134,7 @@ def perform_daily_checkin(user_id, username):
     """Perform a daily check-in for a user and return the new coin balance"""
     from datetime import datetime, timezone
     
-    conn = sqlite3.connect('shooting_star.db')
+    conn = sqlite3.connect('not_object.db')
     cursor = conn.cursor()
     
     # Add coins
@@ -158,7 +158,7 @@ def can_earn_daily_message_reward(user_id):
     """Check if a user can earn coins for their first message of the day (based on UTC date)"""
     from datetime import datetime, timezone
     
-    conn = sqlite3.connect('shooting_star.db')
+    conn = sqlite3.connect('not_object.db')
     cursor = conn.cursor()
     
     # Get the last message date
@@ -180,7 +180,7 @@ def process_daily_message_reward(user_id, username):
     """Process daily message reward for a user and return the new coin balance"""
     from datetime import datetime, timezone
     
-    conn = sqlite3.connect('shooting_star.db')
+    conn = sqlite3.connect('not_object.db')
     cursor = conn.cursor()
     
     # Add coins
