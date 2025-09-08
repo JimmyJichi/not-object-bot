@@ -12,7 +12,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.guilds = True
 
-class ShootingStarBot(commands.Bot):
+class NotObjectBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix='!', intents=intents)
 
@@ -35,7 +35,7 @@ class ShootingStarBot(commands.Bot):
         if shooting_star_cog:
             shooting_star_cog.shooting_star_task.start()
 
-bot = ShootingStarBot()
+bot = NotObjectBot()
 
 @bot.event
 async def on_message(message):
