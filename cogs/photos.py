@@ -135,8 +135,8 @@ class PhotosCog(commands.Cog):
             location_info = ""
             if city and country:
                 location_info = f"📍 **Location:** {city}, {country}"
-            elif exif_data.get('DateTime'):
-                location_info = f"📅 **Date:** {exif_data['DateTime']}"
+            # elif exif_data.get('DateTime'):
+            #     location_info = f"📅 **Date:** {exif_data['DateTime']}"
             else:
                 location_info = "📍 **Location:** Unknown"
             
