@@ -1,92 +1,111 @@
-# 🌠 Shooting Star Discord Bot
+# My Personal Discord Bot 🌠
 
-A Discord bot that creates an interactive shooting star game with 6 random events per day. Users can catch shooting stars by typing specific messages to earn coins.
+A Discord bot that creates an engaging community experience with shooting star events, coin economy, and photo sharing features.
 
 ## Features
 
-- **Daily Scheduled Events**: 6 shooting star events per day at random times
-- **Coin System**: Users earn 130 coins for successfully catching a shooting star
-- **SQLite Database**: Persistent storage for user coins
-- **Leaderboard**: View top users by coin count
-- **Beautiful Embeds**: Rich, colorful messages with emojis and formatting
+### 🌠 Shooting Star Events
+- **Automated Events**: The bot generates 6 random shooting star events per day across specified channels
+- **Time-based Schedule**: Events occur at random times throughout the day (UTC)
+- **Interactive Gameplay**: Users must type the correct word to "catch" the shooting star
+- **Rewards**: Successful catches award 100 coins
+- **Visual Appeal**: Each event includes an embedded image and attractive Discord embeds
 
-## Setup Instructions
+### 💰 Coin Economy System
+- **Daily Rewards**: 
+  - 200 coins for first message of the day (UTC)
+  - 200 coins for daily check-in command
+- **Starting Balance**: New users begin with 1000 coins
+- **Commands**:
+  - `/coins` - Check your coin balance
+  - `/coins @user` - Check another user's balance
+  - `/leaderboard` - View top 10 users by coins
+  - `/daily` - Claim daily check-in reward
 
-### 1. Install Dependencies
+### 📸 Photo Sharing System
+- **Random Photos**: Spend 1000 coins to get a random photo from a curated collection
+- **Location Data**: Photos include GPS location information extracted from EXIF data
+- **Progress Tracking**: Shows how many photos have been revealed vs. total available
+- **Channel Restrictions**: Can be limited to specific channels
+- **Automatic Management**: Revealed photos are moved to a separate directory
 
-```bash
-pip install -r requirements.txt
-```
+## Installation
 
-### 2. Create Discord Bot
+### Prerequisites
+- Python 3.8 or higher
+- Discord Bot Token
+- Discord Server with appropriate permissions
 
-1. Go to the [Discord Developer Portal](https://discord.com/developers/applications)
-2. Create a new application
-3. Go to the "Bot" section and create a bot
-4. Copy the bot token
-5. Enable the following intents:
-   - Message Content Intent
-   - Server Members Intent
+### Setup
 
-### 3. Invite Bot to Server
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd shooting-star
+   ```
 
-Use this URL (replace `YOUR_BOT_CLIENT_ID` with your bot's client ID):
-```
-https://discord.com/api/oauth2/authorize?client_id=YOUR_BOT_CLIENT_ID&permissions=2147600448&scope=bot%20applications.commands
-```
+2. **Create a virtual environment**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
 
-### 4. Get Channel ID
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-1. Enable Developer Mode in Discord (User Settings > Advanced > Developer Mode)
-2. Right-click on the channels where you want shooting stars to appear
-3. Click "Copy ID"
+4. **Environment Configuration**
+   Create a `.env` file in the project root:
+   ```env
+   DISCORD_TOKEN=your_discord_bot_token_here
+   SHOOTING_STAR_CHANNEL=channel_id_1,channel_id_2,channel_id_3
+   PHOTO_CHANNEL=photo_channel_id
+   PHOTO_MENTION_USER=user_id_to_mention_in_photos
+   ```
 
-### 5. Create Environment File
+5. **Prepare Photos Directory**
+   - Add photos to the `photos/` directory
+   
+6. **Run the Bot**
+   ```bash
+   python bot.py
+   ```
 
-Create a `.env` file in the project directory:
+## Configuration
 
-```env
-DISCORD_TOKEN=your_discord_bot_token_here
-CHANNEL_IDS=your_channel_id_here,your_channel_id_here
-OWNER_ID=your_user_id_here
-```
+### Bot Permissions
 
-### 6. Run the Bot
+The bot requires the following Discord permissions:
+- Send Messages
+- Embed Links
+- Attach Files
+- Read Message History
+- Use Slash Commands
 
-```bash
-python bot.py
-```
+## How It Works
 
-## Commands
+### Shooting Star Events
+1. The bot generates a daily schedule with 6 random events
+2. Each event has a predetermined time, channel, and catch word
+3. Events are scheduled throughout the day (UTC)
+4. When an event triggers, users have 60 seconds to type the correct word
+5. Successful catches award 100 coins
 
-- `/coins` - Check your coin balance
-- `/leaderboard` - View the top 10 users by coins
+### Coin System
+- Users earn coins through various activities
+- All coin transactions are stored in SQLite database
+- Leaderboard shows top earners
 
-## Game Mechanics
+### Photo System
+- Photos are stored in the `photos/` directory
+- EXIF data is extracted to show location information
+- Photos are moved to `revealed/` after being shown
+- GPS coordinates are reverse-geocoded to show city/country
 
-1. **Daily Schedule**: Each day, 6 shooting star events are scheduled at random times throughout the day (24-hour period)
+## Dependencies
 
-2. **Channel Assignment**: Each event is predetermined to appear in a specific channel, ensuring each channel gets events throughout the day
-
-3. **Catch Messages**: When a shooting star appears, users must type one of these exact messages:
-   - rawr
-   - scylla
-   - object
-   - slime
-   - ithaca
-   - tiddles
-
-4. **Time Limit**: Users have 60 seconds to type the correct message to catch the shooting star
-
-5. **Rewards**: The first person to type the correct message earns 130 coins
-
-6. If no one catches it within 60 seconds, the shooting star fades away
-
-## Customization
-
-You can modify the following in `bot.py`:
-- `possible_messages` list - Change the catch phrases
-- `range(6)` in `generate_daily_schedule()` - Change the number of daily events
-- `random.randint(0, 23)` - Change the time range (currently 24 hours)
-- `await asyncio.sleep(60)` - Change the catch time limit
-- `add_coins(user_id, username, 130)` - Change the reward amount
+- `discord.py` - Discord API wrapper
+- `python-dotenv` - Environment variable management
+- `Pillow` - Image processing and EXIF data extraction
+- `geopy` - GPS coordinate reverse geocoding
