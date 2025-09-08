@@ -208,11 +208,15 @@ class PhotosCog(commands.Cog):
         
         # Get photo counts
         total_photos, revealed_photos = self.get_photo_counts()
+
+        # Get the user to mention
+        photo_mention_user_id = os.getenv('PHOTO_MENTION_USER')
+        mention_text = f"<@{photo_mention_user_id}>" if photo_mention_user_id else "Object"
         
         # Create embed with photo info
         embed = discord.Embed(
             title="📸 Random Photo",
-            description=f"Here's a random photo from Object's phone!\n\n{location_info}\n\n💰 **Cost:** {required_coins} coins\n💳 **Remaining balance:** {current_coins - required_coins} coins\n\n📊 **Photos:** {revealed_photos}/{total_photos}",
+            description=f"Here's a random photo from {mention_text}'s phone!\n\n{location_info}\n\n💰 **Cost:** {required_coins} coins\n💳 **Remaining balance:** {current_coins - required_coins} coins\n\n📊 **Photos:** {revealed_photos}/{total_photos}",
             color=0x4ecdc4
         )
         
