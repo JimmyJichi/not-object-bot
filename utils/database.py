@@ -31,34 +31,46 @@ def init_database():
 
 
 def get_user_coins(user_id):
-    """Get the coin balance for a specific user"""
+    """Get the coin balance for a specific user, creating them with 1000 coins if they don't exist"""
     conn = sqlite3.connect('shooting_star.db')
     cursor = conn.cursor()
+    
+    # Check if user exists
     cursor.execute('SELECT coins FROM users WHERE user_id = ?', (user_id,))
     result = cursor.fetchone()
-    conn.close()
-    return result[0] if result else 0
+    
+    if result:
+        # User exists, return their coins
+        conn.close()
+        return result[0]
+    else:
+        # User doesn't exist, create them with 1000 coins
+        cursor.execute('INSERT INTO users (user_id, username, coins) VALUES (?, ?, ?)', 
+                      (user_id, "Unknown", 1000))
+        conn.commit()
+        conn.close()
+        return 1000
 
 
 def add_coins(user_id, username, amount):
-    """Add coins to a user's balance"""
+    """Add coins to a user's balance, giving new users 1000 coins base"""
     conn = sqlite3.connect('shooting_star.db')
     cursor = conn.cursor()
     cursor.execute('''
         INSERT OR REPLACE INTO users (user_id, username, coins)
-        VALUES (?, ?, COALESCE((SELECT coins FROM users WHERE user_id = ?), 0) + ?)
+        VALUES (?, ?, COALESCE((SELECT coins FROM users WHERE user_id = ?), 1000) + ?)
     ''', (user_id, username, user_id, amount))
     conn.commit()
     conn.close()
 
 
 def remove_coins(user_id, username, amount):
-    """Remove coins from a user's balance (minimum 0)"""
+    """Remove coins from a user's balance (minimum 0), giving new users 1000 coins base"""
     conn = sqlite3.connect('shooting_star.db')
     cursor = conn.cursor()
     cursor.execute('''
         INSERT OR REPLACE INTO users (user_id, username, coins)
-        VALUES (?, ?, MAX(COALESCE((SELECT coins FROM users WHERE user_id = ?), 0) - ?, 0))
+        VALUES (?, ?, MAX(COALESCE((SELECT coins FROM users WHERE user_id = ?), 1000) - ?, 0))
     ''', (user_id, username, user_id, amount))
     conn.commit()
     conn.close()
@@ -69,7 +81,7 @@ def spend_coins(user_id, username, amount):
     conn = sqlite3.connect('shooting_star.db')
     cursor = conn.cursor()
     
-    # Check current balance
+    # Check current balance (this will create user with 1000 coins if they don't exist)
     current_coins = get_user_coins(user_id)
     if current_coins < amount:
         conn.close()
