@@ -216,7 +216,7 @@ class PhotosCog(commands.Cog):
         # Create embed with photo info
         embed = discord.Embed(
             title="📸 Random Photo",
-            description=f"Here's a random photo from {mention_text}'s phone!\n\n{location_info}\n\n💰 **Cost:** {required_coins} coins\n💳 **Remaining balance:** {current_coins - required_coins} coins",
+            description=f"Here's a random photo from {mention_text}'s phone!\n\n{location_info}\n\n💰 **Cost:** {required_coins} coins\n💳 **Balance:** {current_coins - required_coins} coins",
             color=0x4ecdc4
         )
         
