@@ -22,6 +22,7 @@ class NotObjectBot(commands.Bot):
         await self.load_extension('cogs.coins')
         await self.load_extension('cogs.shooting_star')
         await self.load_extension('cogs.photos')
+        await self.load_extension('cogs.llm')
         
         # Sync commands
         # await self.tree.sync()
