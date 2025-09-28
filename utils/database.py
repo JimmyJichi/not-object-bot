@@ -9,7 +9,8 @@ def init_database():
         CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER PRIMARY KEY,
             username TEXT NOT NULL,
-            coins INTEGER DEFAULT 0
+            coins INTEGER DEFAULT 0,
+            lifetime_coins INTEGER DEFAULT 0
         )
     ''')
     cursor.execute('''
@@ -26,6 +27,17 @@ def init_database():
             FOREIGN KEY (user_id) REFERENCES users (user_id)
         )
     ''')
+    
+    # Add lifetime_coins column if it doesn't exist (for existing databases)
+    try:
+        cursor.execute('ALTER TABLE users ADD COLUMN lifetime_coins INTEGER DEFAULT 0')
+    except sqlite3.OperationalError:
+        # Column already exists, ignore
+        pass
+    
+    # Update existing users to have lifetime_coins equal to their current coins
+    cursor.execute('UPDATE users SET lifetime_coins = coins WHERE lifetime_coins = 0 OR lifetime_coins IS NULL')
+    
     conn.commit()
     conn.close()
 
@@ -45,8 +57,30 @@ def get_user_coins(user_id):
         return result[0]
     else:
         # User doesn't exist, create them with 1000 coins
-        cursor.execute('INSERT INTO users (user_id, username, coins) VALUES (?, ?, ?)', 
-                      (user_id, "Unknown", 1000))
+        cursor.execute('INSERT INTO users (user_id, username, coins, lifetime_coins) VALUES (?, ?, ?, ?)', 
+                      (user_id, "Unknown", 1000, 1000))
+        conn.commit()
+        conn.close()
+        return 1000
+
+
+def get_user_lifetime_coins(user_id):
+    """Get the lifetime coin balance for a specific user, creating them with 1000 coins if they don't exist"""
+    conn = sqlite3.connect('not_object.db')
+    cursor = conn.cursor()
+    
+    # Check if user exists
+    cursor.execute('SELECT lifetime_coins FROM users WHERE user_id = ?', (user_id,))
+    result = cursor.fetchone()
+    
+    if result:
+        # User exists, return their lifetime coins
+        conn.close()
+        return result[0]
+    else:
+        # User doesn't exist, create them with 1000 coins
+        cursor.execute('INSERT INTO users (user_id, username, coins, lifetime_coins) VALUES (?, ?, ?, ?)', 
+                      (user_id, "Unknown", 1000, 1000))
         conn.commit()
         conn.close()
         return 1000
@@ -57,9 +91,11 @@ def add_coins(user_id, username, amount):
     conn = sqlite3.connect('not_object.db')
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT OR REPLACE INTO users (user_id, username, coins)
-        VALUES (?, ?, COALESCE((SELECT coins FROM users WHERE user_id = ?), 1000) + ?)
-    ''', (user_id, username, user_id, amount))
+        INSERT OR REPLACE INTO users (user_id, username, coins, lifetime_coins)
+        VALUES (?, ?, 
+                COALESCE((SELECT coins FROM users WHERE user_id = ?), 1000) + ?,
+                COALESCE((SELECT lifetime_coins FROM users WHERE user_id = ?), 1000) + ?)
+    ''', (user_id, username, user_id, amount, user_id, amount))
     conn.commit()
     conn.close()
 
@@ -69,9 +105,11 @@ def remove_coins(user_id, username, amount):
     conn = sqlite3.connect('not_object.db')
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT OR REPLACE INTO users (user_id, username, coins)
-        VALUES (?, ?, MAX(COALESCE((SELECT coins FROM users WHERE user_id = ?), 1000) - ?, 0))
-    ''', (user_id, username, user_id, amount))
+        INSERT OR REPLACE INTO users (user_id, username, coins, lifetime_coins)
+        VALUES (?, ?, 
+                MAX(COALESCE((SELECT coins FROM users WHERE user_id = ?), 1000) - ?, 0),
+                MAX(COALESCE((SELECT lifetime_coins FROM users WHERE user_id = ?), 1000) - ?, 0))
+    ''', (user_id, username, user_id, amount, user_id, amount))
     conn.commit()
     conn.close()
 
@@ -87,11 +125,11 @@ def spend_coins(user_id, username, amount):
         conn.close()
         return False
     
-    # Deduct coins
+    # Deduct coins (lifetime_coins remains unchanged when spending)
     cursor.execute('''
-        INSERT OR REPLACE INTO users (user_id, username, coins)
-        VALUES (?, ?, ?)
-    ''', (user_id, username, current_coins - amount))
+        INSERT OR REPLACE INTO users (user_id, username, coins, lifetime_coins)
+        VALUES (?, ?, ?, COALESCE((SELECT lifetime_coins FROM users WHERE user_id = ?), 1000))
+    ''', (user_id, username, current_coins - amount, user_id))
     
     conn.commit()
     conn.close()
@@ -99,10 +137,10 @@ def spend_coins(user_id, username, amount):
 
 
 def get_leaderboard(limit=10):
-    """Get the top users by coin balance"""
+    """Get the top users by lifetime coin balance"""
     conn = sqlite3.connect('not_object.db')
     cursor = conn.cursor()
-    cursor.execute('SELECT username, coins FROM users ORDER BY coins DESC LIMIT ?', (limit,))
+    cursor.execute('SELECT username, coins, lifetime_coins FROM users ORDER BY lifetime_coins DESC LIMIT ?', (limit,))
     results = cursor.fetchall()
     conn.close()
     return results
