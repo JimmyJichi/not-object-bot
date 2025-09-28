@@ -49,7 +49,7 @@ class CoinsCog(commands.Cog):
                 medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"{i}."
                 embed.add_field(
                     name=f"{medal} {username}",
-                    value=f"**{lifetime_coins} lifetime coins** (Current: {coins})",
+                    value=f"**{lifetime_coins} coins** (Current: {coins})",
                     inline=False
                 )
         
