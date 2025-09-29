@@ -168,7 +168,7 @@ def can_daily_checkin(user_id):
     return last_checkin != today_utc
 
 
-def perform_daily_checkin(user_id, username):
+def perform_daily_checkin(user_id, username, coin_amount=200):
     """Perform a daily check-in for a user and return the new coin balance"""
     from datetime import datetime, timezone
     
@@ -176,7 +176,7 @@ def perform_daily_checkin(user_id, username):
     cursor = conn.cursor()
     
     # Add coins
-    add_coins(user_id, username, 200)
+    add_coins(user_id, username, coin_amount)
     
     # Update check-in date
     today_utc = datetime.now(timezone.utc).strftime('%Y-%m-%d')
@@ -214,7 +214,7 @@ def can_earn_daily_message_reward(user_id):
     return last_message != today_utc
 
 
-def process_daily_message_reward(user_id, username):
+def process_daily_message_reward(user_id, username, coin_amount=200):
     """Process daily message reward for a user and return the new coin balance"""
     from datetime import datetime, timezone
     
@@ -222,7 +222,7 @@ def process_daily_message_reward(user_id, username):
     cursor = conn.cursor()
     
     # Add coins
-    add_coins(user_id, username, 200)
+    add_coins(user_id, username, coin_amount)
     
     # Update message date
     today_utc = datetime.now(timezone.utc).strftime('%Y-%m-%d')

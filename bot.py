@@ -10,6 +10,7 @@ load_dotenv()
 # Bot setup
 intents = discord.Intents.default()
 intents.message_content = True
+intents.members = True
 intents.guilds = True
 
 class NotObjectBot(commands.Bot):
@@ -50,8 +51,39 @@ async def on_message(message):
     username = message.author.display_name
     
     if can_earn_daily_message_reward(user_id):
-        # Award 200 coins for first message of the day
-        process_daily_message_reward(user_id, username)
+        # Check for Twitch subscriber multipliers
+        multiplier = 1.0
+        
+        # Server owner always gets 1x multiplier
+        owner_user_id = os.getenv('OWNER_USER_ID')
+        if owner_user_id and str(user_id) == str(owner_user_id):
+            multiplier = 1.0
+        else:
+            # Check for Twitch subscriber roles
+            member = message.guild.get_member(user_id)
+            if member:
+                twitch_tier_1_role_id = os.getenv('TWITCH_TIER_1_ROLE_ID')
+                twitch_tier_2_role_id = os.getenv('TWITCH_TIER_2_ROLE_ID')
+                twitch_tier_3_role_id = os.getenv('TWITCH_TIER_3_ROLE_ID')
+
+                roles = member.roles
+                tier_1_role = discord.utils.get(message.guild.roles, id=int(twitch_tier_1_role_id)) if twitch_tier_1_role_id else None
+                tier_2_role = discord.utils.get(message.guild.roles, id=int(twitch_tier_2_role_id)) if twitch_tier_2_role_id else None
+                tier_3_role = discord.utils.get(message.guild.roles, id=int(twitch_tier_3_role_id)) if twitch_tier_3_role_id else None
+                
+                if tier_3_role and tier_3_role in roles:
+                    multiplier = 2.0
+                elif tier_2_role and tier_2_role in roles:
+                    multiplier = 1.4
+                elif tier_1_role and tier_1_role in roles:
+                    multiplier = 1.2
+        
+        # Calculate coin amount with multiplier
+        base_coins = 200
+        total_coins = int(base_coins * multiplier)
+        
+        # Award coins for first message of the day with multiplier
+        process_daily_message_reward(user_id, username, total_coins)
     
     # Process commands
     await bot.process_commands(message)

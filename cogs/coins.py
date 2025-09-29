@@ -1,6 +1,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
+import os
 from utils.database import get_user_coins, get_user_lifetime_coins, get_leaderboard, can_daily_checkin, perform_daily_checkin
 
 
@@ -71,14 +72,47 @@ class CoinsCog(commands.Cog):
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
         
-        # Perform the daily check-in
-        new_balance = perform_daily_checkin(user_id, username)
+        # Check for Twitch subscriber multipliers
+        multiplier = 1.0
         
+        # Server owner always gets 1x multiplier
+        owner_user_id = os.getenv('OWNER_USER_ID')
+        if owner_user_id and str(user_id) == str(owner_user_id):
+            multiplier = 1.0
+        else:
+            # Check for Twitch subscriber roles
+            member = interaction.guild.get_member(user_id)
+            if member:
+                twitch_tier_1_role_id = os.getenv('TWITCH_TIER_1_ROLE_ID')
+                twitch_tier_2_role_id = os.getenv('TWITCH_TIER_2_ROLE_ID')
+                twitch_tier_3_role_id = os.getenv('TWITCH_TIER_3_ROLE_ID')
+
+                roles = member.roles
+                tier_1_role = discord.utils.get(interaction.guild.roles, id=int(twitch_tier_1_role_id))
+                tier_2_role = discord.utils.get(interaction.guild.roles, id=int(twitch_tier_2_role_id))
+                tier_3_role = discord.utils.get(interaction.guild.roles, id=int(twitch_tier_3_role_id))
+                
+                if tier_3_role in roles:
+                    multiplier = 2.0
+                elif tier_2_role in roles:
+                    multiplier = 1.4
+                elif tier_1_role in roles:
+                    multiplier = 1.2
+        
+        # Calculate coin amount with multiplier
+        base_coins = 200
+        total_coins = int(base_coins * multiplier)
+        
+        # Perform the daily check-in with multiplier
+        new_balance = perform_daily_checkin(user_id, username, total_coins)
+        
+        # Create response message
         embed = discord.Embed(
             title="🎉 Daily Check-in Complete!",
-            description=f"**+200 coins** added to your balance!\n\nYour new balance: **{new_balance} coins**",
+            description=f"**+{total_coins} coins** added to your balance!\n\nYour new balance: **{new_balance} coins**",
             color=0x4ecdc4
-        )
+            )
+        
         embed.set_footer(text="Come back tomorrow (UTC) for another daily reward!")
         
         await interaction.response.send_message(embed=embed, ephemeral=True)

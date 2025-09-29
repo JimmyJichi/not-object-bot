@@ -218,7 +218,39 @@ class ShootingStarCog(commands.Cog):
             # Add coins to the user
             user_id = message.author.id
             username = message.author.display_name
-            add_coins(user_id, username, 100)
+            
+            # Check for Twitch subscriber multipliers
+            multiplier = 1.0
+            
+            # Server owner always gets 1x multiplier
+            owner_user_id = os.getenv('OWNER_USER_ID')
+            if owner_user_id and str(user_id) == str(owner_user_id):
+                multiplier = 1.0
+            else:
+                # Check for Twitch subscriber roles
+                member = message.guild.get_member(user_id)
+                if member:
+                    twitch_tier_1_role_id = os.getenv('TWITCH_TIER_1_ROLE_ID')
+                    twitch_tier_2_role_id = os.getenv('TWITCH_TIER_2_ROLE_ID')
+                    twitch_tier_3_role_id = os.getenv('TWITCH_TIER_3_ROLE_ID')
+
+                    roles = member.roles
+                    tier_1_role = discord.utils.get(message.guild.roles, id=int(twitch_tier_1_role_id)) if twitch_tier_1_role_id else None
+                    tier_2_role = discord.utils.get(message.guild.roles, id=int(twitch_tier_2_role_id)) if twitch_tier_2_role_id else None
+                    tier_3_role = discord.utils.get(message.guild.roles, id=int(twitch_tier_3_role_id)) if twitch_tier_3_role_id else None
+                    
+                    if tier_3_role and tier_3_role in roles:
+                        multiplier = 2.0
+                    elif tier_2_role and tier_2_role in roles:
+                        multiplier = 1.4
+                    elif tier_1_role and tier_1_role in roles:
+                        multiplier = 1.2
+            
+            # Calculate coin amount with multiplier
+            base_coins = 100
+            total_coins_earned = int(base_coins * multiplier)
+            
+            add_coins(user_id, username, total_coins_earned)
             
             # Get updated coin count
             from utils.database import get_user_coins
@@ -231,7 +263,7 @@ class ShootingStarCog(commands.Cog):
             )
             embed.add_field(
                 name="💰 Reward",
-                value=f"You earned **100 coins**!\nTotal coins: **{total_coins}**",
+                value=f"You earned **{total_coins_earned} coins**!\nTotal coins: **{total_coins}**",
                 inline=False
             )
             embed.set_footer(text=f"Caught at {datetime.datetime.now(datetime.UTC).strftime('%H:%M:%S')} UTC")
