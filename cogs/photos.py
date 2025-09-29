@@ -7,7 +7,7 @@ import shutil
 from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
 from geopy.geocoders import Nominatim
-from utils.database import get_user_coins, spend_coins
+from utils.database import get_user_coins, spend_coins, refund_coins
 
 
 class PhotosCog(commands.Cog):
@@ -195,8 +195,7 @@ class PhotosCog(commands.Cog):
         
         if photo_path is None:
             # Refund the coins if photo retrieval failed
-            from utils.database import add_coins
-            add_coins(user_id, username, required_coins)
+            refund_coins(user_id, username, required_coins)
             
             embed = discord.Embed(
                 title="❌ Photo Unavailable",
@@ -228,8 +227,7 @@ class PhotosCog(commands.Cog):
                 await interaction.response.send_message(embed=embed, file=photo_file)
         except Exception as e:
             # Refund the coins if file sending failed
-            from utils.database import add_coins
-            add_coins(user_id, username, required_coins)
+            refund_coins(user_id, username, required_coins)
             
             embed = discord.Embed(
                 title="❌ Error Sending Photo",

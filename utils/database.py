@@ -27,6 +27,15 @@ def init_database():
             FOREIGN KEY (user_id) REFERENCES users (user_id)
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS custom_roles (
+            user_id INTEGER PRIMARY KEY,
+            role_id INTEGER NOT NULL,
+            role_name TEXT NOT NULL,
+            color INTEGER NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users (user_id)
+        )
+    ''')
     
     # Add lifetime_coins column if it doesn't exist (for existing databases)
     try:
@@ -236,3 +245,48 @@ def process_daily_message_reward(user_id, username, coin_amount=200):
     
     # Return the new coin balance
     return get_user_coins(user_id)
+
+
+def get_user_custom_role(user_id):
+    """Get a user's custom role information"""
+    conn = sqlite3.connect('not_object.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT role_id, role_name, color FROM custom_roles WHERE user_id = ?', (user_id,))
+    result = cursor.fetchone()
+    conn.close()
+    return result
+
+
+def create_user_custom_role(user_id, role_id, role_name, color):
+    """Create or update a user's custom role"""
+    conn = sqlite3.connect('not_object.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT OR REPLACE INTO custom_roles (user_id, role_id, role_name, color)
+        VALUES (?, ?, ?, ?)
+    ''', (user_id, role_id, role_name, color))
+    conn.commit()
+    conn.close()
+
+
+def delete_user_custom_role(user_id):
+    """Delete a user's custom role from the database"""
+    conn = sqlite3.connect('not_object.db')
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM custom_roles WHERE user_id = ?', (user_id,))
+    conn.commit()
+    conn.close()
+
+
+def refund_coins(user_id, username, amount):
+    """Refund coins to a user's current balance without affecting lifetime coins"""
+    conn = sqlite3.connect('not_object.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT OR REPLACE INTO users (user_id, username, coins, lifetime_coins)
+        VALUES (?, ?, 
+                COALESCE((SELECT coins FROM users WHERE user_id = ?), 1000) + ?,
+                COALESCE((SELECT lifetime_coins FROM users WHERE user_id = ?), 1000))
+    ''', (user_id, username, user_id, amount, user_id))
+    conn.commit()
+    conn.close()

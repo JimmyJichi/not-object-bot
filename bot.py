@@ -24,6 +24,7 @@ class NotObjectBot(commands.Bot):
         await self.load_extension('cogs.shooting_star')
         await self.load_extension('cogs.photos')
         await self.load_extension('cogs.llm')
+        await self.load_extension('cogs.custom_role')
         
         # Sync commands
         # await self.tree.sync()

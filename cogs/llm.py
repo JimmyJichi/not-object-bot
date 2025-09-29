@@ -4,7 +4,7 @@ from discord.ext import commands
 import openai
 import os
 import asyncio
-from utils.database import spend_coins, get_user_coins
+from utils.database import spend_coins, get_user_coins, refund_coins
 
 
 class LLMCog(commands.Cog):
@@ -94,8 +94,7 @@ class LLMCog(commands.Cog):
             
         except Exception as e:
             # Refund coins if there was an error
-            from utils.database import add_coins
-            add_coins(user_id, username, self.ASK_COST)
+            refund_coins(user_id, username, self.ASK_COST)
             
             embed = discord.Embed(
                 title="❌ Error",
