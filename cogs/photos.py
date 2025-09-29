@@ -209,7 +209,7 @@ class PhotosCog(commands.Cog):
         total_photos, revealed_photos = self.get_photo_counts()
 
         # Get the user to mention
-        photo_mention_user_id = os.getenv('PHOTO_MENTION_USER')
+        photo_mention_user_id = os.getenv('OWNER_USER_ID')
         mention_text = f"<@{photo_mention_user_id}>" if photo_mention_user_id else "Object"
         
         # Create embed with photo info

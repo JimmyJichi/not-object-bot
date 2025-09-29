@@ -9,7 +9,7 @@ class CustomRoleCog(commands.Cog):
     """Cog for handling custom role commands"""
     
     # Cost for creating a custom role
-    CUSTOM_ROLE_COST = 1000
+    CUSTOM_ROLE_COST = 2500
     
     def __init__(self, bot):
         self.bot = bot
