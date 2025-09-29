@@ -150,9 +150,9 @@ class PhotosCog(commands.Cog):
             print(f"Error getting random photo: {e}")
             return None, f"Error accessing photos: {str(e)}"
 
-    @app_commands.command(name='photo', description='Spend 1000 coins to get a random photo from Object\'s phone!')
+    @app_commands.command(name='photo', description='Spend 500 coins to get a random photo from Object\'s phone!')
     async def random_photo(self, interaction: discord.Interaction):
-        """Command to get a random photo for 1000 coins"""
+        """Command to get a random photo for 500 coins"""
         # Check if user is in the correct channel
         photo_channel_id = os.getenv('PHOTO_CHANNEL')        
         user_id = interaction.user.id
@@ -160,7 +160,7 @@ class PhotosCog(commands.Cog):
         
         # Check if user has enough coins
         current_coins = get_user_coins(user_id)
-        required_coins = 1000
+        required_coins = 500
         
         if current_coins < required_coins:
             embed = discord.Embed(
