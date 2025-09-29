@@ -117,11 +117,8 @@ class CustomRoleCog(commands.Cog):
             # Delete old role if it exists
             if old_role:
                 await old_role.delete()
-                delete_user_custom_role(user_id)
-
-            all_roles = await interaction.guild.fetch_roles()
-            num_roles = len(all_roles)
-            
+                delete_user_custom_role(user_id)            
+                
             # Create new role
             new_role = await interaction.guild.create_role(
                 name=text,
@@ -129,6 +126,9 @@ class CustomRoleCog(commands.Cog):
                 mentionable=False,
                 reason=f"Custom role created by {username}"
             )
+
+            all_roles = await interaction.guild.fetch_roles()
+            num_roles = len(all_roles)
 
             await new_role.edit(position=num_roles - 2)
             
