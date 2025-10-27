@@ -89,6 +89,16 @@ async def on_message(message):
     # Process commands
     await bot.process_commands(message)
 
+@bot.event
+async def on_voice_state_update(member, before, after):
+    if not before.channel and after.channel:
+        username = member.display_name
+
+        vc_role_id = os.getenv('VC_ROLE_ID')
+        if vc_role_id:
+            await bot.get_channel(after.channel.id).send(f"<@&{vc_role_id}> {username} has joined {after.channel.name}!")
+
+
 # Run the bot
 if __name__ == "__main__":
     bot.run(os.getenv('DISCORD_TOKEN'))
