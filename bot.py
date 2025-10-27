@@ -26,6 +26,7 @@ class NotObjectBot(commands.Bot):
         await self.load_extension('cogs.llm')
         await self.load_extension('cogs.custom_role')
         await self.load_extension('cogs.sotd')
+        await self.load_extension('cogs.snap')
         
         # Sync commands
         # await self.tree.sync()

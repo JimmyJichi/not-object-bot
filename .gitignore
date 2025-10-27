@@ -4,3 +4,4 @@ venv/
 __pycache__/
 not_object.db
 shooting_star_schedule.json
+snaps/

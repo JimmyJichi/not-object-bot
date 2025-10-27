@@ -49,6 +49,14 @@ def init_database():
             FOREIGN KEY (user_id) REFERENCES users (user_id)
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS snap_streaks (
+            user_id INTEGER PRIMARY KEY,
+            last_snap_date TEXT NOT NULL,
+            streak_days INTEGER DEFAULT 0,
+            FOREIGN KEY (user_id) REFERENCES users (user_id)
+        )
+    ''')
     
     # Add lifetime_coins column if it doesn't exist (for existing databases)
     try:
@@ -393,3 +401,73 @@ def can_add_song(spotify_url):
     
     # All entries have been featured, allow adding it again
     return True, "all_featured"
+
+
+def can_snap_today(user_id):
+    """Check if a user can snap today (based on UTC date). Returns True/False and streak info"""
+    from datetime import datetime, timezone
+    
+    conn = sqlite3.connect('not_object.db')
+    cursor = conn.cursor()
+    
+    # Get the last snap date and current streak
+    cursor.execute('SELECT last_snap_date, streak_days FROM snap_streaks WHERE user_id = ?', (user_id,))
+    result = cursor.fetchone()
+    
+    conn.close()
+    
+    today_utc = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    
+    if not result:
+        # User has never snapped before
+        return True, 0, 0
+    
+    last_snap_date, current_streak = result
+    
+    # Get yesterday's date
+    from datetime import timedelta
+    yesterday_utc = (datetime.now(timezone.utc) - timedelta(days=1)).strftime('%Y-%m-%d')
+    
+    if last_snap_date == today_utc:
+        # User already snapped today
+        return False, current_streak, 0
+    
+    if last_snap_date == yesterday_utc:
+        # User snapped yesterday, continue streak
+        return True, current_streak + 1, current_streak + 1
+    
+    # Streak broken, reset to 0
+    return True, 0, 0
+
+
+def process_snap(user_id, username):
+    """Process a snap and return the reward amount, new streak, and new balance"""
+    from datetime import datetime, timezone
+    
+    conn = sqlite3.connect('not_object.db')
+    cursor = conn.cursor()
+    
+    today_utc = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    
+    # Get current streak info
+    can_snap, new_streak_days, _ = can_snap_today(user_id)
+    
+    # Calculate reward: Day 1 = 25, Day 2 = 50, Day 3 = 75, ... capped at 500
+    # For streak_days = 0 (first snap), reward = 25
+    # For streak_days = n (nth day of streak), reward = min(25 * (n+1), 500)
+    reward = min(25 * (new_streak_days + 1), 500)
+    
+    # Add coins
+    add_coins(user_id, username, reward)
+    
+    # Update snap streak info
+    cursor.execute('''
+        INSERT OR REPLACE INTO snap_streaks (user_id, last_snap_date, streak_days)
+        VALUES (?, ?, ?)
+    ''', (user_id, today_utc, new_streak_days))
+    
+    conn.commit()
+    conn.close()
+    
+    # Return reward amount, streak days, and new balance
+    return reward, new_streak_days, get_user_coins(user_id)
