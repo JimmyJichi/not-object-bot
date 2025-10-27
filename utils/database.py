@@ -36,6 +36,19 @@ def init_database():
             FOREIGN KEY (user_id) REFERENCES users (user_id)
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS sotd_songs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            track_name TEXT NOT NULL,
+            artist_name TEXT NOT NULL,
+            album_cover_url TEXT NOT NULL,
+            spotify_url TEXT NOT NULL,
+            used INTEGER DEFAULT 0,
+            date_added TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users (user_id)
+        )
+    ''')
     
     # Add lifetime_coins column if it doesn't exist (for existing databases)
     try:
@@ -290,3 +303,93 @@ def refund_coins(user_id, username, amount):
     ''', (user_id, username, user_id, amount, user_id))
     conn.commit()
     conn.close()
+
+
+def add_sotd_song(user_id, track_name, artist_name, album_cover_url, spotify_url):
+    """Add a song to the SOTD database"""
+    from datetime import datetime, timezone
+    
+    conn = sqlite3.connect('not_object.db')
+    cursor = conn.cursor()
+    
+    today_utc = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    cursor.execute('''
+        INSERT INTO sotd_songs (user_id, track_name, artist_name, album_cover_url, spotify_url, date_added)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (user_id, track_name, artist_name, album_cover_url, spotify_url, today_utc))
+    
+    conn.commit()
+    conn.close()
+
+
+def get_random_unused_song():
+    """Get a random unused song from the database"""
+    conn = sqlite3.connect('not_object.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT id, user_id, track_name, artist_name, album_cover_url, spotify_url
+        FROM sotd_songs
+        WHERE used = 0
+        ORDER BY RANDOM()
+        LIMIT 1
+    ''')
+    result = cursor.fetchone()
+    conn.close()
+    
+    if result:
+        return {
+            'id': result[0],
+            'user_id': result[1],
+            'track_name': result[2],
+            'artist_name': result[3],
+            'album_cover_url': result[4],
+            'spotify_url': result[5]
+        }
+    return None
+
+
+def mark_song_as_used(song_id):
+    """Mark a song as used"""
+    conn = sqlite3.connect('not_object.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        UPDATE sotd_songs
+        SET used = 1
+        WHERE id = ?
+    ''', (song_id,))
+    
+    conn.commit()
+    conn.close()
+
+
+def can_add_song(spotify_url):
+    """Check if a song can be added to the database.
+    Returns True if:
+    - Song doesn't exist, OR
+    - Song exists but all entries have been featured
+    Returns False if:
+    - Song already has an unused entry (waiting to be featured)
+    """
+    conn = sqlite3.connect('not_object.db')
+    cursor = conn.cursor()
+    
+    # Get all entries for this spotify_url
+    cursor.execute('SELECT used FROM sotd_songs WHERE spotify_url = ?', (spotify_url,))
+    results = cursor.fetchall()
+    conn.close()
+    
+    # If no entries exist, allow it
+    if not results:
+        return True, None
+    
+    # Check if there's at least one unused entry (waiting to be featured)
+    has_unused = any(result[0] == 0 for result in results)
+    
+    if has_unused:
+        # Song is already in the queue waiting to be featured
+        return False, "unused"
+    
+    # All entries have been featured, allow adding it again
+    return True, "all_featured"
