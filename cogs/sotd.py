@@ -71,7 +71,7 @@ class SotdCog(commands.Cog):
                 return
             
             # Check if song can be added
-            can_add, reason = can_add_song(spotify_url)
+            can_add, reason = can_add_song(track_name, artist_name)
             if not can_add:
                 embed = discord.Embed(
                     title=f"❌ {track_name} by {artist_name}",

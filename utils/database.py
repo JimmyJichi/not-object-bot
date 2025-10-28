@@ -372,7 +372,7 @@ def mark_song_as_used(song_id):
     conn.close()
 
 
-def can_add_song(spotify_url):
+def can_add_song(track_name, artist_name):
     """Check if a song can be added to the database.
     Returns True if:
     - Song doesn't exist, OR
@@ -383,8 +383,8 @@ def can_add_song(spotify_url):
     conn = sqlite3.connect('not_object.db')
     cursor = conn.cursor()
     
-    # Get all entries for this spotify_url
-    cursor.execute('SELECT used FROM sotd_songs WHERE spotify_url = ?', (spotify_url,))
+    # Get all entries for this track and artist combination
+    cursor.execute('SELECT used FROM sotd_songs WHERE track_name = ? AND artist_name = ?', (track_name, artist_name))
     results = cursor.fetchall()
     conn.close()
     
