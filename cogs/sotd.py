@@ -5,6 +5,7 @@ import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import os
 import asyncio
+import httpx
 from datetime import datetime, timezone, timedelta
 from utils.database import (
     add_sotd_song,
@@ -114,6 +115,31 @@ class SotdCog(commands.Cog):
             print(f"Error extracting track ID: {e}")
             return None
 
+    async def fetch_song_links(self, spotify_url):
+        """Fetch Apple Music and YouTube links from song.link API"""
+        try:
+            # Encode the Spotify URL for the API request
+            api_url = f"https://api.song.link/v1-alpha.1/links"
+            params = {
+                'url': spotify_url,
+                'songIfSingle': 'true'
+            }
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(api_url, params=params, timeout=10.0)
+                response.raise_for_status()
+                data = response.json()
+                
+                # Extract Apple Music and YouTube links
+                links_by_platform = data.get('linksByPlatform', {})
+                apple_music_url = links_by_platform.get('appleMusic', {}).get('url')
+                youtube_url = links_by_platform.get('youtube', {}).get('url')
+                
+                return apple_music_url, youtube_url
+        except Exception as e:
+            print(f"Error fetching song links: {e}")
+            return None, None
+
     @tasks.loop(hours=24)
     async def daily_sotd_task(self):
         """Send the song of the day at midnight UTC"""
@@ -141,6 +167,9 @@ class SotdCog(commands.Cog):
         user = self.bot.get_user(song['user_id'])
         user_mention = user.mention if user else f"User ID {song['user_id']}"
         
+        # Fetch additional platform links
+        apple_music_url, youtube_url = await self.fetch_song_links(song['spotify_url'])
+        
         # Create embed
         embed = discord.Embed(
             title=f"{song['track_name']}",
@@ -149,8 +178,16 @@ class SotdCog(commands.Cog):
         )
         embed.set_image(url=song['album_cover_url'])
         embed.add_field(name="Added by", value=user_mention, inline=False)
-        embed.add_field(name="Listen", value=f"[Open in Spotify]({song['spotify_url']})", inline=False)
-        embed.set_footer(text=f"Powered by Spotify")
+        
+        # Build listen links field
+        listen_links = [f"[Spotify]({song['spotify_url']})"]
+        if apple_music_url:
+            listen_links.append(f"[Apple Music]({apple_music_url})")
+        if youtube_url:
+            listen_links.append(f"[YouTube]({youtube_url})")
+        
+        embed.add_field(name="Listen", value=" | ".join(listen_links), inline=False)
+        embed.set_footer(text=f"Powered by Odesli")
         
         await channel.send(embed=embed)
         print(f"Sent SOTD: {song['track_name']} by {song['artist_name']}")
