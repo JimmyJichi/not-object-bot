@@ -48,71 +48,178 @@ class SotdCog(commands.Cog):
             await interaction.followup.send("❌ Spotify API is not configured. Please check your environment variables.")
             return
         
-        # Extract track ID from Spotify URL
+        # Extract Spotify resource type and ID from URL
         try:
-            track_id = self.extract_track_id(spotify_url)
-            if not track_id:
+            resource = self.extract_spotify_resource(spotify_url)
+            if not resource:
                 embed = discord.Embed(
                     title="❌ Invalid Spotify URL",
-                    description="Please provide a valid Spotify track URL.",
-                    color=0xE74C3C  # Red color for error
+                    description="Please provide a valid Spotify track, album, or playlist URL.",
+                    color=0xE74C3C
                 )
                 await interaction.followup.send(embed=embed)
                 return
-            
-            # Get track information from Spotify
-            track = self.spotify.track(track_id)
-            
-            track_name = track['name']
-            artist_name = ', '.join([artist['name'] for artist in track['artists']])
-            album_cover_url = track['album']['images'][0]['url'] if track['album']['images'] else None
-            
-            if not album_cover_url:
-                await interaction.followup.send("❌ Could not retrieve album cover.")
-                return
-            
-            # Check if song can be added
-            can_add, reason = can_add_song(track_name, artist_name)
-            if not can_add:
-                embed = discord.Embed(
-                    title=f"❌ {track_name} by {artist_name}",
-                    description=(
-                        f"This song is already in the library and hasn't been featured yet!\n"
-                        f"You can add it again after it's been featured."
-                    ),
-                    color=0xE74C3C  # Red color for error
-                )
-                await interaction.followup.send(embed=embed)
-                return
-            
-            # Add to database
+
+            resource_type, resource_id = resource
+
             user_id = interaction.user.id
-            add_sotd_song(user_id, track_name, artist_name, album_cover_url, spotify_url)
-            
-            # Create embed for confirmation
-            embed = discord.Embed(
-                title=f"✅ {track_name} by {artist_name}",
-                description=f"Added to the library",
-                color=0x1DB954  # Spotify green
-            )
-            await interaction.followup.send(embed=embed)
+
+            if resource_type == 'track':
+                # Get track information from Spotify
+                track = self.spotify.track(resource_id)
+
+                track_name = track['name']
+                artist_name = ', '.join([artist['name'] for artist in track['artists']])
+                album_cover_url = track['album']['images'][0]['url'] if track['album']['images'] else None
+
+                if not album_cover_url:
+                    await interaction.followup.send("❌ Could not retrieve album cover.")
+                    return
+
+                # Check if song can be added
+                can_add, _ = can_add_song(track_name, artist_name)
+                if not can_add:
+                    embed = discord.Embed(
+                        title=f"❌ {track_name} by {artist_name}",
+                        description=(
+                            f"This song is already in the library and hasn't been featured yet!\n"
+                            f"You can add it again after it's been featured."
+                        ),
+                        color=0xE74C3C
+                    )
+                    await interaction.followup.send(embed=embed)
+                    return
+
+                # Add to database
+                add_sotd_song(user_id, track_name, artist_name, album_cover_url, spotify_url)
+
+                # Create embed for confirmation (track path retains current behavior)
+                embed = discord.Embed(
+                    title=f"✅ {track_name} by {artist_name}",
+                    description=f"Added to the library",
+                    color=0x1DB954
+                )
+                await interaction.followup.send(embed=embed)
+
+            elif resource_type == 'album':
+                # Fetch album and tracks (with pagination)
+                album = self.spotify.album(resource_id)
+                album_name = album.get('name') or 'Album'
+                album_cover_url = album['images'][0]['url'] if album.get('images') else None
+
+                added_count = 0
+                limit = 50
+                offset = 0
+                while True:
+                    tracks_page = self.spotify.album_tracks(resource_id, limit=limit, offset=offset)
+                    items = tracks_page.get('items', [])
+                    if not items:
+                        break
+                    for item in items:
+                        track_name = item['name']
+                        artist_name = ', '.join([artist['name'] for artist in item['artists']])
+                        track_id = item.get('id')
+                        if not track_id:
+                            continue
+                        track_url = f"https://open.spotify.com/track/{track_id}"
+                        cover_url = album_cover_url
+                        if not cover_url:
+                            # Fallback: fetch full track to get album image if album image missing
+                            track_full = self.spotify.track(track_id)
+                            cover_url = track_full['album']['images'][0]['url'] if track_full['album'].get('images') else None
+                        if not cover_url:
+                            continue
+                        can_add, _ = can_add_song(track_name, artist_name)
+                        if can_add:
+                            add_sotd_song(user_id, track_name, artist_name, cover_url, track_url)
+                            added_count += 1
+                    if tracks_page.get('next'):
+                        offset += limit
+                    else:
+                        break
+
+                embed = discord.Embed(
+                    title=f"✅ {album_name}",
+                    description=f"{added_count} tracks added",
+                    color=0x1DB954
+                )
+                await interaction.followup.send(embed=embed)
+
+            elif resource_type == 'playlist':
+                # Fetch playlist tracks (with pagination)
+                playlist = self.spotify.playlist(resource_id)
+                playlist_name = (playlist.get('name') or 'Playlist') if isinstance(playlist, dict) else 'Playlist'
+                added_count = 0
+                limit = 100
+                offset = 0
+                while True:
+                    page = self.spotify.playlist_items(resource_id, limit=limit, offset=offset)
+                    items = page.get('items', [])
+                    if not items:
+                        break
+                    for item in items:
+                        track = item.get('track')
+                        if not track:
+                            continue
+                        # Skip local or unavailable tracks
+                        track_id = track.get('id')
+                        if not track_id:
+                            continue
+                        track_name = track.get('name')
+                        artist_name = ', '.join([artist['name'] for artist in track.get('artists', [])])
+                        track_url = f"https://open.spotify.com/track/{track_id}"
+                        album_images = (track.get('album') or {}).get('images') or []
+                        cover_url = album_images[0]['url'] if album_images else None
+                        if not cover_url:
+                            # Fallback fetch if needed
+                            track_full = self.spotify.track(track_id)
+                            cover_url = track_full['album']['images'][0]['url'] if track_full['album'].get('images') else None
+                        if not cover_url:
+                            continue
+                        can_add, _ = can_add_song(track_name, artist_name)
+                        if can_add:
+                            add_sotd_song(user_id, track_name, artist_name, cover_url, track_url)
+                            added_count += 1
+                    if page.get('next'):
+                        offset += limit
+                    else:
+                        break
+
+                embed = discord.Embed(
+                    title=f"✅ {playlist_name}",
+                    description=f"{added_count} tracks added",
+                    color=0x1DB954
+                )
+                await interaction.followup.send(embed=embed)
+            else:
+                embed = discord.Embed(
+                    title="❌ Unsupported Spotify URL",
+                    description="Please provide a Spotify track, album, or playlist URL.",
+                    color=0xE74C3C
+                )
+                await interaction.followup.send(embed=embed)
             
         except Exception as e:
             print(f"Error adding song: {e}")
             await interaction.followup.send(f"❌ Error adding song: {str(e)}")
 
-    def extract_track_id(self, url):
-        """Extract track ID from Spotify URL"""
+    def extract_spotify_resource(self, url):
+        """Extract Spotify resource type and ID from URL. Returns tuple (type, id) or None"""
         try:
-            # Handle different Spotify URL formats
-            if '/track/' in url:
-                parts = url.split('/track/')
-                if len(parts) > 1:
-                    track_id = parts[1].split('?')[0]  # Remove query parameters
-                    return track_id
+            # Normalize URL by stripping query params and fragments
+            base = url.split('?')[0].split('#')[0]
+            if '/track/' in base:
+                track_id = base.split('/track/')[1].split('/')[0]
+                return ('track', track_id)
+            if '/album/' in base:
+                album_id = base.split('/album/')[1].split('/')[0]
+                return ('album', album_id)
+            if '/playlist/' in base:
+                playlist_id = base.split('/playlist/')[1].split('/')[0]
+                return ('playlist', playlist_id)
             return None
         except Exception as e:
-            print(f"Error extracting track ID: {e}")
+            print(f"Error extracting Spotify resource: {e}")
             return None
 
     async def fetch_song_links(self, spotify_url):
