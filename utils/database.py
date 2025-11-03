@@ -335,13 +335,30 @@ def get_random_unused_song():
     conn = sqlite3.connect('not_object.db')
     cursor = conn.cursor()
     
+    # First, get all distinct users who have unused songs
     cursor.execute('''
-        SELECT id, user_id, track_name, artist_name, album_cover_url, spotify_url
+        SELECT DISTINCT user_id
         FROM sotd_songs
         WHERE used = 0
         ORDER BY RANDOM()
         LIMIT 1
     ''')
+    user_result = cursor.fetchone()
+    
+    if not user_result:
+        conn.close()
+        return None
+    
+    selected_user_id = user_result[0]
+    
+    # Then, get a random unused song from that user
+    cursor.execute('''
+        SELECT id, user_id, track_name, artist_name, album_cover_url, spotify_url
+        FROM sotd_songs
+        WHERE used = 0 AND user_id = ?
+        ORDER BY RANDOM()
+        LIMIT 1
+    ''', (selected_user_id,))
     result = cursor.fetchone()
     conn.close()
     
