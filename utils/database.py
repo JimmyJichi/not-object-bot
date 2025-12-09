@@ -57,6 +57,17 @@ def init_database():
             FOREIGN KEY (user_id) REFERENCES users (user_id)
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS birthdays (
+            user_id INTEGER PRIMARY KEY,
+            month INTEGER NOT NULL,
+            day INTEGER NOT NULL,
+            year INTEGER,
+            timezone TEXT NOT NULL DEFAULT 'UTC',
+            removed INTEGER DEFAULT 0,
+            FOREIGN KEY (user_id) REFERENCES users (user_id)
+        )
+    ''')
     
     # Add lifetime_coins column if it doesn't exist (for existing databases)
     try:
@@ -488,3 +499,88 @@ def process_snap(user_id, username):
     
     # Return reward amount, streak days, and new balance
     return reward, new_streak_days, get_user_coins(user_id)
+
+
+def set_user_birthday(user_id, month, day, year=None, timezone='UTC'):
+    """Set or update a user's birthday. Returns True if this is the first time setting it."""
+    conn = sqlite3.connect('not_object.db')
+    cursor = conn.cursor()
+    
+    # Check if user already has a birthday set
+    cursor.execute('SELECT removed FROM birthdays WHERE user_id = ?', (user_id,))
+    result = cursor.fetchone()
+    is_first_time = result is None
+    
+    # Insert or update birthday
+    cursor.execute('''
+        INSERT OR REPLACE INTO birthdays (user_id, month, day, year, timezone, removed)
+        VALUES (?, ?, ?, ?, ?, 0)
+    ''', (user_id, month, day, year, timezone))
+    
+    conn.commit()
+    conn.close()
+    
+    return is_first_time
+
+
+def get_user_birthday(user_id):
+    """Get a user's birthday. Returns None if not set or removed."""
+    conn = sqlite3.connect('not_object.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT month, day, year, timezone FROM birthdays WHERE user_id = ? AND removed = 0', (user_id,))
+    result = cursor.fetchone()
+    conn.close()
+    
+    if result:
+        return {
+            'month': result[0],
+            'day': result[1],
+            'year': result[2],
+            'timezone': result[3]
+        }
+    return None
+
+
+def get_all_active_birthdays():
+    """Get all active (non-removed) birthdays."""
+    conn = sqlite3.connect('not_object.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT user_id, month, day, year, timezone FROM birthdays WHERE removed = 0')
+    results = cursor.fetchall()
+    conn.close()
+    
+    birthdays = []
+    for result in results:
+        birthdays.append({
+            'user_id': result[0],
+            'month': result[1],
+            'day': result[2],
+            'year': result[3],
+            'timezone': result[4]
+        })
+    return birthdays
+
+
+def get_unique_timezones():
+    """Get all unique timezones from active birthdays."""
+    conn = sqlite3.connect('not_object.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT DISTINCT timezone FROM birthdays WHERE removed = 0')
+    results = cursor.fetchall()
+    conn.close()
+    
+    return [result[0] for result in results]
+
+
+def remove_user_birthday(user_id):
+    """Mark a user's birthday as removed (don't delete it)."""
+    conn = sqlite3.connect('not_object.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('UPDATE birthdays SET removed = 1 WHERE user_id = ?', (user_id,))
+    
+    conn.commit()
+    conn.close()
