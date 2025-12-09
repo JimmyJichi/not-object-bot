@@ -220,13 +220,13 @@ class BirthdayCog(commands.Cog):
         
         # Create birthday message
         embed = discord.Embed(
-            title="🎉 Happy Birthday! 🎉",
+            title="🎉 Happy Birthday!",
             description=f"Happy birthday to {user.mention}!{age_text}",
             color=0xffd700
         )
         embed.add_field(
             name="🎁 Birthday Reward",
-            value=f"You received **{self.BIRTHDAY_REWARD} coins**!\nTotal coins: **{new_balance}**",
+            value=f"You received **{self.BIRTHDAY_REWARD} coins**!",
             inline=False
         )
         embed.set_footer(text="Have an amazing day! 🎈")
