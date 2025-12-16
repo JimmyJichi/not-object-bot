@@ -135,7 +135,8 @@ class SnapCog(commands.Cog):
                 color=0x4ecdc4
             )
             embed.add_field(name="💰 Reward Earned", value=f"+{reward} coins", inline=True)
-            embed.add_field(name="🔥 Streak", value=f"{new_streak_days} days", inline=True)
+            streak_display = "1 day" if new_streak_days == 0 else f"{new_streak_days + 1} days"
+            embed.add_field(name="🔥 Streak", value=streak_display, inline=True)
             embed.add_field(name="💳 New Balance", value=f"{new_balance} coins", inline=False)
             
             # Add streak info message
