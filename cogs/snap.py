@@ -69,6 +69,9 @@ class SnapCog(commands.Cog):
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
         
+        # Defer the response to prevent timeout during processing
+        await interaction.response.defer(ephemeral=True)
+        
         # Process the snap and get reward
         reward, new_streak_days, new_balance = process_snap(user_id, username)
         
@@ -81,7 +84,7 @@ class SnapCog(commands.Cog):
                 description="Snap channel is not configured. Please contact an administrator.",
                 color=0xff6b6b
             )
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            await interaction.followup.send(embed=embed)
             return
         
         try:
@@ -93,7 +96,7 @@ class SnapCog(commands.Cog):
                     description="The snap channel could not be found.",
                     color=0xff6b6b
                 )
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.followup.send(embed=embed)
                 return
             
             # Download the image
@@ -146,7 +149,7 @@ class SnapCog(commands.Cog):
             
             embed.set_footer(text="Come back tomorrow (UTC) to continue your streak!")
             
-            await interaction.response.send_message(embed=embed)
+            await interaction.followup.send(embed=embed)
             
         except Exception as e:
             embed = discord.Embed(
@@ -154,7 +157,7 @@ class SnapCog(commands.Cog):
                 description=f"Failed to post your snap: {str(e)}",
                 color=0xff6b6b
             )
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            await interaction.followup.send(embed=embed)
 
 
 async def setup(bot):
