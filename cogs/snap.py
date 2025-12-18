@@ -116,7 +116,8 @@ class SnapCog(commands.Cog):
                 description=f"**{username}** shared a photo!",
                 color=0x4ecdc4
             )
-            snap_embed.add_field(name="🔥 Streak", value=f"{new_streak_days} days", inline=True)
+            streak_display = "1 day" if new_streak_days == 0 else f"{new_streak_days + 1} days"
+            snap_embed.add_field(name="🔥 Streak", value=streak_display, inline=True)
             snap_embed.add_field(name="💰 Reward", value=f"+{reward} coins", inline=True)
             snap_embed.set_image(url=f"attachment://{safe_filename}")
             
