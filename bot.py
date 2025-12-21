@@ -119,6 +119,8 @@ async def on_reaction_add(reaction, user):
         for emoji in TARGET_EMOJIS:
             await message.clear_reaction(emoji)
 
+        print(f"6 7 reactions by {user.name} removed.")
+
 
 # Run the bot
 if __name__ == "__main__":
