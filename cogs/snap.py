@@ -116,6 +116,7 @@ class SnapCog(commands.Cog):
             snap_embed.add_field(name="🔥 Streak", value=streak_display, inline=True)
             snap_embed.add_field(name="💰 Reward", value=f"+{reward} coins", inline=True)
             snap_embed.set_image(url=image_url)
+            snap_embed.add_field(name="🔗 Original", value=f"[Download]({image_url})", inline=False)
 
             sent_message = await snap_channel.send(embed=snap_embed)
             message_link = sent_message.jump_url
