@@ -11,6 +11,7 @@ from utils.database import (
     mark_song_as_used,
     can_add_song,
     get_queue_counts,
+    remove_pending_songs,
 )
 
 SQUIGLY_API_BASE = "https://squigly.link/api"
@@ -155,6 +156,35 @@ class SotdCog(commands.Cog):
         )
         embed.set_footer(text=f"{total} song{'s' if total != 1 else ''} total")
         await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="prune", description="Remove queued songs from users who have left the server")
+    @app_commands.default_permissions(administrator=True)
+    async def prune_queue(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+
+        counts = get_queue_counts()
+        if not counts:
+            await interaction.followup.send("The queue is empty.")
+            return
+
+        removed_users = []
+        for user_id, count in counts:
+            member = interaction.guild.get_member(user_id)
+            if member is None:
+                remove_pending_songs(user_id)
+                removed_users.append((user_id, count))
+
+        if not removed_users:
+            await interaction.followup.send("No songs to prune — all queued users are still in the server.")
+            return
+
+        lines = [f"<@{user_id}> — {count} song{'s' if count != 1 else ''} removed" for user_id, count in removed_users]
+        embed = discord.Embed(
+            title="Queue Pruned",
+            description="\n".join(lines),
+            color=0xE74C3C,
+        )
+        await interaction.followup.send(embed=embed)
 
     @tasks.loop(hours=24)
     async def daily_sotd_task(self):
